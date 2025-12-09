@@ -87,4 +87,5 @@ pubspec.lock
 functions/package-lock.json
 functions/package-lock.json
 functions/node_modules/
+functions/lib
 emulator-data/
