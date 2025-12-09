@@ -1,14 +1,51 @@
-import 'package:crypto_app/service/auth_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:crypto_app/firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-void main() {
-  final authService = AuthService();
-  runApp(MyApp(authService: authService));
+Future<void> initializeFirebase() async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  if (kDebugMode) {
+    try {
+      // Configure Firestore with emulator and persistence
+      // Use the Firestore emulator on localhost
+      FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
+      // Keep persistence enabled for local testing
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: true,
+      );
+
+      // Configure Functions emulator (ensure port matches emulator config)
+      FirebaseFunctions.instance.useFunctionsEmulator('localhost', 5002);
+
+      debugPrint('Firebase emulators initialized successfully');
+    } catch (e) {
+      debugPrint('Error initializing Firebase emulators: $e');
+      rethrow;
+    }
+  } else {
+    // Production settings
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+    );
+  }
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await initializeFirebase();
+    runApp(MyApp());
+  } catch (error) {
+    debugPrint('Firebase initialization error: $error');
+  }
 }
 
 class MyApp extends StatelessWidget {
-  final AuthService authService;
-  const MyApp({super.key, required this.authService});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -18,62 +55,19 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: LoginPage(authService: authService),
+      home: LoginPage(),
     );
   }
 }
 
 class LoginPage extends StatefulWidget {
-  final AuthService authService;
-  const LoginPage({super.key, required this.authService});
+  const LoginPage({super.key});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  bool _isLoading = false;
-
-  Future<void> _handleSignIn() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final success = await widget.authService.signIn();
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-
-        if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Successfully signed in!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to sign in. Please try again.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -82,13 +76,12 @@ class _LoginPageState extends State<LoginPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (_isLoading)
-              const CircularProgressIndicator()
-            else
-              ElevatedButton(
-                onPressed: _handleSignIn,
-                child: const Text("Sign in with Farcaster"),
-              ),
+            ElevatedButton(
+              onPressed: () {
+                // Implement sign-in logic here
+              },
+              child: const Text('Sign in with Farcaster'),
+            ),
           ],
         ),
       ),
